@@ -2,9 +2,11 @@
 
 namespace Spinen\QuickBooks\Providers;
 
+use Session;
+use App\Company;
+use Spinen\QuickBooks\Client;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider as LaravelServiceProvider;
-use Spinen\QuickBooks\Client;
 
 /**
  * Class ClientServiceProvider
@@ -39,10 +41,17 @@ class ClientServiceProvider extends LaravelServiceProvider
      */
     public function register()
     {
-        $this->app->bind(Client::class, function (Application $app) {
-            $token = ($app->auth->user()->quickBooksToken)
-                ? : $app->auth->user()
-                              ->quickBooksToken()
+        $this->app->singleton(Client::class, function (Application $app) {
+            if(request()->route('company')){
+                $company = request()->route('company');
+            } else {
+                $company_id = Session::get('integrated_company');
+
+                $company = Company::where('id', $company_id)->first();
+            }
+
+            $token = ($company->quickBooksToken)
+                ? : $company->quickBooksToken()
                               ->make();
 
             return new Client($app->config->get('quickbooks'), $token);
